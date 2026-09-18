@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotas - De Pratas</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#0f1420;--bg2:#171d2b;--bg3:#202838;--tx:#e8ecf3;--mut:#8b94a7;--az:#2f7bff;--vd:#22c55e;--am:#f59e0b;--vm:#ef4444;--rx:#a855f7;--cz:#64748b;--ouro:#c9a227}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:14px;padding:8px 16px;background:var(--bg);border-bottom:1px solid #222a3a;flex-wrap:wrap}
+.logo{font-weight:800;font-size:20px;letter-spacing:1px;color:var(--ouro)}.logo span{color:#fff;font-weight:300}
+.pills{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}.pill{background:var(--bg3);border-radius:20px;padding:5px 12px;font-size:13px;display:flex;gap:6px;align-items:center}
+.pill b{color:#fff}.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+nav{display:flex;gap:4px;padding:0 12px;background:var(--bg2);border-bottom:1px solid #222a3a;align-items:center}
+nav button{background:none;border:0;color:var(--mut);padding:10px 12px;font-size:14px;cursor:pointer;border-bottom:2px solid transparent}
+nav button.on{color:#fff;border-color:var(--az)}
+nav .add{margin-left:auto;background:var(--az);color:#fff;border-radius:6px;padding:8px 16px;font-weight:600;border-bottom:0}
+main{flex:1;display:flex;min-height:0}
+aside{width:300px;background:var(--bg2);border-right:1px solid #222a3a;display:flex;flex-direction:column;min-height:0}
+.tools{padding:10px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #222a3a}
+select,input,textarea{background:var(--bg3);color:var(--tx);border:1px solid #2b3447;border-radius:6px;padding:8px;font-size:14px;width:100%}
+.row{display:flex;gap:6px;align-items:center}
+.btn{background:var(--az);color:#fff;border:0;border-radius:6px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn.cz{background:var(--bg3);color:var(--tx)}.btn.vm{background:var(--vm)}.btn.vd{background:var(--vd)}.btn.sm{padding:5px 8px;font-size:12px}
+.lista{flex:1;overflow:auto}
+.item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #1f2735;cursor:pointer}.item:hover{background:var(--bg3)}
+.item.sel{background:#1c2a44}
+.num{border-radius:6px;padding:3px 8px;font-weight:800;color:#fff;font-size:13px;min-width:44px;text-align:center}
+.info{flex:1;min-width:0}.info .t{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.info .s{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grupo{padding:6px 10px;font-size:12px;color:var(--mut);background:#131927;text-transform:uppercase;letter-spacing:.5px;display:flex;gap:6px;align-items:center}
+#mapa{flex:1;position:relative}#map{position:absolute;inset:0}
+.pane{flex:1;overflow:auto;padding:16px;display:none}.pane.on{display:block}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:8px 10px;border-bottom:1px solid #222a3a;text-align:left}th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase}
+.card{background:var(--bg2);border:1px solid #222a3a;border-radius:10px;padding:14px;margin-bottom:14px}
+h2{font-size:16px;margin:0 0 10px}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;z-index:1000}.modal.on{display:flex}
+.box{background:var(--bg2);border-radius:12px;padding:18px;width:min(520px,95vw);max-height:90vh;overflow:auto;border:1px solid #2b3447}
+.box h3{margin:0 0 12px}.f{margin-bottom:10px}.f label{font-size:12px;color:var(--mut);display:block;margin-bottom:4px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ent-marker{background:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid var(--az);box-shadow:0 2px 8px #0008;position:relative}
+.ent-marker.vivo{border-color:var(--vd)}.ent-marker.vivo::after{content:'';position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--vd);animation:p 1.6s infinite}
+.ent-marker.off{border-color:var(--cz);filter:grayscale(1);opacity:.7}
+@keyframes p{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.4);opacity:0}}
+.pin{color:#fff;font-weight:800;font-size:12px;padding:3px 6px;border-radius:5px;box-shadow:0 2px 6px #0007;white-space:nowrap;border:2px solid #fff3}
+.loja-marker{font-size:26px;filter:drop-shadow(0 2px 3px #000)}
+.leaflet-popup-content{color:#111;font-size:13px}.leaflet-popup-content .btn{margin:2px 2px 0 0}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:8px;z-index:2000;display:none;box-shadow:0 4px 20px #000}
+.login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:3000}
+.tag{font-size:11px;padding:2px 7px;border-radius:10px;color:#fff;display:inline-block}
+@media(max-width:800px){aside{width:100%;position:absolute;bottom:0;height:45%;z-index:500}main{position:relative}}
+</style>
+</head>
+<body>
+<div class="login" id="login"><div class="box" style="width:340px"><div class="logo" style="margin-bottom:12px">DE <span>PRATAS</span></div><p style="color:var(--mut);margin:0 0 14px">Painel de entregas</p><div class="f"><label>Senha do painel</label><input type="password" id="senha" onkeydown="if(event.key==='Enter')entrar()"></div><button class="btn" style="width:100%" onclick="entrar()">Entrar</button><p id="loginErro" style="color:var(--vm);font-size:13px"></p></div></div>
+
+<header>
+  <div class="logo">DE <span>PRATAS</span></div>
+  <div class="pill"><span class="dot" style="background:var(--vd)"></span> Na rua <b id="s_na_rua">0</b></div>
+  <div class="pills">
+    <div class="pill"><span class="dot" style="background:var(--vm)"></span>Na loja <b id="s_loja">0</b></div>
+    <div class="pill"><span class="dot" style="background:var(--am)"></span>Com entregador <b id="s_com_entregador">0</b></div>
+    <div class="pill"><span class="dot" style="background:var(--az)"></span>Em rota <b id="s_em_rota">0</b></div>
+    <div class="pill"><span class="dot" style="background:var(--vd)"></span>Entregue <b id="s_entregue">0</b></div>
+    <div class="pill">A receber <b id="s_a_receber">R$ 0,00</b></div>
+    <input type="date" id="data" style="width:auto;padding:4px 8px" onchange="atualizar()">
+  </div>
+</header>
+<nav>
+  <button class="on" onclick="aba('mapa',this)">🗺️ Mapa</button>
+  <button onclick="aba('entregadores',this)">🏍️ Entregadores</button>
+  <button onclick="aba('historico',this)">📋 Entregas do dia</button>
+  <button class="add" onclick="abrirNova()">+ Endereço</button>
+</nav>
+<main>
+  <aside id="aside">
+    <div class="tools">
+      <div class="row"><select id="despacharPara"><option value="">Despachar para...</option></select><button class="btn sm" onclick="despachar()">OK</button></div>
+      <div class="row"><select id="marcar" onchange="marcarComo()"><option value="">Marcar como...</option><option value="loja">Na loja (voltar)</option><option value="em_rota">Em rota</option><option value="entregue">Entregue</option><option value="nao_entregue">Não entregue</option><option value="cancelada">Cancelada</option></select></div>
+      <div class="row"><label style="font-size:13px"><input type="checkbox" id="todas" style="width:auto" onchange="selTodas()"> Todas</label><span id="nsel" style="color:var(--mut);font-size:12px">nenhuma</span><input id="busca" placeholder="Buscar nº, cliente, rua" style="margin-left:auto;width:140px;padding:5px 8px" oninput="render()"></div>
+    </div>
+    <div class="lista" id="lista"></div>
+  </aside>
+  <div id="mapa" class="pane on" style="padding:0"><div id="map"></div></div>
+  <div id="entregadores" class="pane"></div>
+  <div id="historico" class="pane"></div>
+</main>
+
+<div class="modal" id="modal"><div class="box">
+  <h3 id="mTitulo">Nova entrega</h3>
+  <input type="hidden" id="mId">
+  <div class="g2"><div class="f"><label>Nº do pedido</label><input id="mNumero"></div><div class="f"><label>Cliente</label><input id="mCliente"></div></div>
+  <div class="f"><label>Endereço completo (rua, número, bairro)</label><input id="mEndereco" placeholder="Rua X, 123, Bairro Y"></div>
+  <div class="g2"><div class="f"><label>Referência</label><input id="mRef"></div><div class="f"><label>Telefone do cliente</label><input id="mTel"></div></div>
+  <div class="g2"><div class="f"><label>Valor (R$)</label><input id="mValor" type="number" step="0.01"></div><div class="f"><label>Pagamento</label><select id="mPag"><option>Pago (Pix/cartão online)</option><option>Dinheiro na entrega</option><option>Cartão na entrega</option><option>Pix na entrega</option></select></div></div>
+  <div class="f"><label>Observações</label><textarea id="mObs" rows="2"></textarea></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn cz" onclick="fechar()">Cancelar</button><button class="btn" onclick="salvarEntrega()">Salvar</button></div>
+</div></div>
+
+<div class="modal" id="modalEnt"><div class="box" style="width:380px">
+  <h3 id="eTitulo">Novo entregador</h3><input type="hidden" id="eId">
+  <div class="f"><label>Nome</label><input id="eNome"></div>
+  <div class="f"><label>Telefone com DDD (login no app)</label><input id="eTel" placeholder="67999990000"></div>
+  <div class="f"><label>PIN de 4 números</label><input id="ePin" maxlength="4"></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn cz" onclick="document.getElementById('modalEnt').classList.remove('on')">Cancelar</button><button class="btn" onclick="salvarEnt()">Salvar</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const COR={loja:'#ef4444',com_entregador:'#f59e0b',em_rota:'#2f7bff',entregue:'#22c55e',nao_entregue:'#a855f7',cancelada:'#64748b'};
+const NOME={loja:'Na loja',com_entregador:'Com entregador',em_rota:'Em rota',entregue:'Entregue',nao_entregue:'Não entregue',cancelada:'Cancelada'};
+const R$=v=>'R$ '+(Number(v)||0).toFixed(2).replace('.',',');
+const hora=s=>s?s.slice(11,16):'';
+let token=localStorage.getItem('adminToken')||'', loja={lat:-20.4697,lng:-54.6201,nome:'De Pratas'};
+let entregas=[],entregadores=[],sel=new Set(),map,camadaEnt=L.layerGroup(),camadaMoto=L.layerGroup(),camadaTraj=L.layerGroup(),trajetoDe=null,timer;
+const $=id=>document.getElementById(id);
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2500)}
+async function api(u,opt={}){const r=await fetch(u,{...opt,headers:{'content-type':'application/json','x-admin-token':token,...(opt.headers||{})},body:opt.body?JSON.stringify(opt.body):undefined});if(r.status===401){localStorage.removeItem('adminToken');$('login').style.display='flex';throw new Error('login')}const j=await r.json();if(!r.ok){toast(j.erro||'erro');throw new Error(j.erro)}return j}
+async function entrar(){try{const j=await fetch('/api/admin/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({senha:$('senha').value})}).then(r=>r.json());if(!j.token){$('loginErro').textContent=j.erro||'erro';return}token=j.token;localStorage.setItem('adminToken',token);$('login').style.display='none';iniciar()}catch(e){$('loginErro').textContent='erro de conexão'}}
+$('data').value=new Date().toLocaleDateString('sv');
+function aba(n,b){document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===n));document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('aside').style.display=n==='mapa'?'':'none';if(n==='mapa')setTimeout(()=>map.invalidateSize(),50);if(n==='entregadores')renderEntregadores();if(n==='historico')renderHistorico()}
+
+async function iniciar(){
+  try{await api('/api/admin/eu')}catch(e){return}
+  $('login').style.display='none';
+  loja=await fetch('/api/loja').then(r=>r.json());
+  if(!map){map=L.map('map',{zoomControl:true}).setView([loja.lat,loja.lng],13);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+    camadaTraj.addTo(map);camadaEnt.addTo(map);camadaMoto.addTo(map);
+    L.marker([loja.lat,loja.lng],{icon:L.divIcon({className:'',html:'<div class="loja-marker">🏪</div>',iconSize:[30,30],iconAnchor:[15,28]})}).addTo(map).bindPopup('<b>'+loja.nome+'</b><br>Loja');}
+  await atualizar();clearInterval(timer);timer=setInterval(atualizar,5000);
+}
+async function atualizar(){
+  const d=$('data').value;
+  const [e,p,r]=await Promise.all([api('/api/admin/entregas?data='+d),api('/api/admin/entregadores/posicoes?data='+d),api('/api/admin/resumo?data='+d)]);
+  entregas=e;entregadores=p;
+  for(const k of ['loja','com_entregador','em_rota','entregue'])$('s_'+k).textContent=r[k]||0;
+  $('s_na_rua').textContent=p.filter(x=>x.ao_vivo).length;$('s_a_receber').textContent=R$(r.a_receber);
+  const sDesp=$('despacharPara');const cur=sDesp.value;sDesp.innerHTML='<option value="">Despachar para...</option><option value="0">↩ Voltar para a loja</option>'+p.map(x=>`<option value="${x.id}">${x.nome}${x.ao_vivo?' 🟢':''} (${x.pendentes})</option>`).join('');sDesp.value=cur;
+  render();renderMapa();if(trajetoDe)carregarTrajeto(trajetoDe,true);
+  if($('entregadores').classList.contains('on'))renderEntregadores();if($('historico').classList.contains('on'))renderHistorico();
+}
+function filtradas(){const q=$('busca').value.toLowerCase();return entregas.filter(x=>!q||[x.numero,x.cliente,x.endereco,x.entregador_nome].join(' ').toLowerCase().includes(q))}
+function render(){
+  const lst=filtradas();let html='',grupo=null;
+  for(const x of lst){const g=x.entregador_id?('🏍️ '+x.entregador_nome):'🏪 Na loja';if(g!==grupo){grupo=g;html+=`<div class="grupo">${g}</div>`}
+    html+=`<div class="item ${sel.has(x.id)?'sel':''}" onclick="focar(${x.id})"><input type="checkbox" style="width:auto" ${sel.has(x.id)?'checked':''} onclick="event.stopPropagation();alternar(${x.id})">
+    <span class="num" style="background:${COR[x.status]}">#${x.numero||x.id}</span><div class="info"><div class="t">${x.cliente||'—'} ${x.status==='entregue'?'✅ '+hora(x.entregue_em):''}</div><div class="s">${x.endereco}${x.lat?'':' ⚠️ sem mapa'}</div></div>
+    <button class="btn cz sm" onclick="event.stopPropagation();abrirEditar(${x.id})">⋮</button></div>`}
+  $('lista').innerHTML=html||'<p style="padding:14px;color:var(--mut)">Nenhuma entrega neste dia. Clique em <b>+ Endereço</b>.</p>';
+  $('nsel').textContent=sel.size?sel.size+' selecionada(s)':'nenhuma';
+}
+function alternar(id){sel.has(id)?sel.delete(id):sel.add(id);render()}
+function selTodas(){sel=$('todas').checked?new Set(filtradas().filter(x=>!['entregue','cancelada'].includes(x.status)).map(x=>x.id)):new Set();render()}
+function focar(id){const x=entregas.find(e=>e.id===id);if(x&&x.lat){map.setView([x.lat,x.lng],16);camadaEnt.eachLayer(m=>{if(m._id===id)m.openPopup()})}}
+function renderMapa(){
+  camadaEnt.clearLayers();
+  for(const x of entregas){if(!x.lat)continue;const m=L.marker([x.lat,x.lng],{icon:L.divIcon({className:'',html:`<div class="pin" style="background:${COR[x.status]}">${x.numero||x.id}</div>`,iconSize:[1,1],iconAnchor:[14,12]})});m._id=x.id;
+    m.bindPopup(`<b>#${x.numero||x.id}</b> · <span class="tag" style="background:${COR[x.status]}">${NOME[x.status]}</span><br>${x.cliente||''}<br>${x.endereco}<br>${x.referencia?'Ref: '+x.referencia+'<br>':''}${R$(x.valor)} · ${x.pagamento||''}<br>${x.entregador_nome?'🏍️ '+x.entregador_nome+' · ':''}${x.saiu_em?'saiu '+hora(x.saiu_em):''} ${x.entregue_em?'· entregue '+hora(x.entregue_em):''}<br>
+      <button class="btn sm" onclick="abrirEditar(${x.id})">Editar</button> <a class="btn sm cz" target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}">Google Maps</a>`);camadaEnt.addLayer(m)}
+  camadaMoto.clearLayers();
+  for(const e of entregadores){if(e.lat==null)continue;const cls=e.ao_vivo?'vivo':'off';const m=L.marker([e.lat,e.lng],{icon:L.divIcon({className:'',html:`<div class="ent-marker ${cls}" title="${e.nome}">🏍️</div>`,iconSize:[36,36],iconAnchor:[18,18]}),zIndexOffset:1000});
+    m.bindPopup(`<b>${e.nome}</b> ${e.ao_vivo?'🟢 ao vivo':'⚫ sem sinal'}<br>Última posição: ${e.em?e.em.slice(11,19):'—'}<br>${e.velocidade!=null?Math.round(e.velocidade*3.6)+' km/h · ':''}${e.bateria!=null?'🔋'+e.bateria+'% · ':''}${e.pendentes} pendente(s), ${e.entregues} entregue(s)<br><button class="btn sm" onclick="carregarTrajeto(${e.id})">Ver trajeto do dia</button> <button class="btn sm cz" onclick="limparTrajeto()">Limpar</button>`);
+    if(e.precisao>30)camadaMoto.addLayer(L.circle([e.lat,e.lng],{radius:e.precisao,color:'#22c55e',weight:1,fillOpacity:.08}));camadaMoto.addLayer(m)}
+}
+async function carregarTrajeto(id,silencioso){trajetoDe=id;const pts=await api(`/api/admin/entregadores/${id}/trajeto?data=${$('data').value}`);camadaTraj.clearLayers();if(!pts.length){if(!silencioso)toast('Sem trajeto registrado hoje');return}
+  const ll=pts.map(p=>[p.lat,p.lng]);camadaTraj.addLayer(L.polyline(ll,{color:'#2f7bff',weight:4,opacity:.8}));camadaTraj.addLayer(L.circleMarker(ll[0],{radius:6,color:'#22c55e',fillOpacity:1}).bindTooltip('Início '+pts[0].em.slice(11,16)));
+  if(!silencioso){map.fitBounds(ll,{padding:[40,40]});toast(pts.length+' pontos no trajeto')}}
+function limparTrajeto(){trajetoDe=null;camadaTraj.clearLayers()}
+async function despachar(){const v=$('despacharPara').value;if(!v||!sel.size)return toast('Selecione as entregas e o entregador');await api('/api/admin/entregas/despachar',{method:'POST',body:{ids:[...sel],entregador_id:v==='0'?null:Number(v)}});sel.clear();$('despacharPara').value='';toast('Despachado');atualizar()}
+async function marcarComo(){const s=$('marcar').value;$('marcar').value='';if(!s||!sel.size)return toast('Selecione as entregas');await api('/api/admin/entregas/status',{method:'POST',body:{ids:[...sel],status:s}});sel.clear();atualizar()}
+function abrirNova(){$('mId').value='';$('mTitulo').textContent='Nova entrega';for(const k of ['mNumero','mCliente','mEndereco','mRef','mTel','mValor','mObs'])$(k).value='';$('mPag').selectedIndex=0;$('modal').classList.add('on');$('mNumero').focus()}
+function abrirEditar(id){const x=entregas.find(e=>e.id===id);if(!x)return;$('mId').value=id;$('mTitulo').innerHTML=`Entrega #${x.numero||x.id} <span class="tag" style="background:${COR[x.status]}">${NOME[x.status]}</span> <button class="btn vm sm" style="float:right" onclick="excluir(${id})">Excluir</button>`;
+  $('mNumero').value=x.numero||'';$('mCliente').value=x.cliente||'';$('mEndereco').value=x.endereco;$('mRef').value=x.referencia||'';$('mTel').value=x.telefone_cliente||'';$('mValor').value=x.valor||'';$('mPag').value=x.pagamento||'Pago (Pix/cartão online)';$('mObs').value=x.obs||'';$('modal').classList.add('on')}
+function fechar(){$('modal').classList.remove('on')}
+async function salvarEntrega(){const b={numero:$('mNumero').value,cliente:$('mCliente').value,endereco:$('mEndereco').value,referencia:$('mRef').value,telefone_cliente:$('mTel').value,valor:$('mValor').value,pagamento:$('mPag').value,obs:$('mObs').value,data:$('data').value};
+  if(!b.endereco)return toast('Informe o endereço');const id=$('mId').value;const r=id?await api('/api/admin/entregas/'+id,{method:'PUT',body:b}):await api('/api/admin/entregas',{method:'POST',body:b});
+  fechar();toast(id?'Salvo':(r.geocodificado?'Entrega criada e localizada no mapa':'Criada, mas endereço não encontrado no mapa — revise'));atualizar()}
+async function excluir(id){if(!confirm('Excluir esta entrega?'))return;await api('/api/admin/entregas/'+id,{method:'DELETE'});fechar();atualizar()}
+// entregadores
+async function renderEntregadores(){const lst=await api('/api/admin/entregadores');const pos=Object.fromEntries(entregadores.map(e=>[e.id,e]));
+  $('entregadores').innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><h2>Entregadores</h2><button class="btn" onclick="abrirEnt()">+ Novo entregador</button></div>
+  <p style="color:var(--mut);font-size:13px">O entregador entra no app com o <b>telefone</b> e o <b>PIN</b>. Link do app: <code>${location.origin}/entregador.html</code></p>
+  <table><tr><th>Nome</th><th>Telefone</th><th>PIN</th><th>Sinal</th><th>Última posição</th><th>Hoje</th><th></th></tr>${lst.map(e=>{const p=pos[e.id]||{};return`<tr style="${e.ativo?'':'opacity:.5'}"><td>${e.nome}${e.ativo?'':' (inativo)'}</td><td>${e.telefone}</td><td>${e.pin}</td><td>${p.ao_vivo?'🟢 ao vivo':e.ultima_pos_em?'⚫ sem sinal':'—'}</td><td>${e.ultima_pos_em||'—'}${p.bateria!=null?' 🔋'+p.bateria+'%':''}</td><td>${p.pendentes||0} pend. / ${p.entregues||0} entr.</td>
+  <td><button class="btn cz sm" onclick='abrirEnt(${JSON.stringify(e)})'>Editar</button> ${e.ativo?`<button class="btn vm sm" onclick="desativarEnt(${e.id})">Desativar</button>`:''}</td></tr>`}).join('')}</table></div>`}
+function abrirEnt(e){$('eId').value=e?e.id:'';$('eTitulo').textContent=e?'Editar entregador':'Novo entregador';$('eNome').value=e?e.nome:'';$('eTel').value=e?e.telefone:'';$('ePin').value=e?e.pin:'';$('modalEnt').classList.add('on')}
+async function salvarEnt(){const b={nome:$('eNome').value,telefone:$('eTel').value,pin:$('ePin').value,ativo:1};const id=$('eId').value;id?await api('/api/admin/entregadores/'+id,{method:'PUT',body:b}):await api('/api/admin/entregadores',{method:'POST',body:b});$('modalEnt').classList.remove('on');toast('Salvo');await atualizar();renderEntregadores()}
+async function desativarEnt(id){if(!confirm('Desativar este entregador?'))return;await api('/api/admin/entregadores/'+id,{method:'DELETE'});await atualizar();renderEntregadores()}
+function renderHistorico(){const tot=entregas.reduce((a,x)=>a+(x.status!=='cancelada'?Number(x.valor)||0:0),0);
+  $('historico').innerHTML=`<div class="card"><h2>Entregas de ${$('data').value.split('-').reverse().join('/')} — ${entregas.length} · ${R$(tot)}</h2>
+  <table><tr><th>#</th><th>Status</th><th>Cliente</th><th>Endereço</th><th>Valor</th><th>Pagamento</th><th>Entregador</th><th>Despachado</th><th>Saiu</th><th>Entregue</th></tr>
+  ${entregas.map(x=>`<tr><td><b>${x.numero||x.id}</b></td><td><span class="tag" style="background:${COR[x.status]}">${NOME[x.status]}</span></td><td>${x.cliente||''}</td><td>${x.endereco}</td><td>${R$(x.valor)}</td><td>${x.pagamento||''}</td><td>${x.entregador_nome||''}</td><td>${hora(x.despachado_em)}</td><td>${hora(x.saiu_em)}</td><td>${hora(x.entregue_em)}${x.motivo_falha?'<br><small>'+x.motivo_falha+'</small>':''}</td></tr>`).join('')}</table></div>`}
+if(token)iniciar();else $('login').style.display='flex';
+</script>
+</body>
+</html>

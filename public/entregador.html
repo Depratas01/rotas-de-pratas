@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1420">
+<link rel="manifest" href="/manifest.json">
+<title>De Pratas - Entregador</title>
+<style>
+:root{--bg:#0f1420;--bg2:#171d2b;--bg3:#202838;--tx:#e8ecf3;--mut:#8b94a7;--az:#2f7bff;--vd:#22c55e;--am:#f59e0b;--vm:#ef4444;--ouro:#c9a227}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:30px}
+.top{position:sticky;top:0;background:var(--bg);padding:12px 16px;border-bottom:1px solid #222a3a;display:flex;align-items:center;gap:10px;z-index:10}
+.logo{font-weight:800;color:var(--ouro);letter-spacing:1px}.logo span{color:#fff;font-weight:300}
+.gps{margin-left:auto;font-size:12px;padding:4px 10px;border-radius:20px;background:var(--bg3)}.gps.ok{background:#14532d;color:#86efac}.gps.err{background:#7f1d1d;color:#fecaca}
+.wrap{padding:14px;max-width:560px;margin:0 auto}
+input{background:var(--bg3);color:var(--tx);border:1px solid #2b3447;border-radius:8px;padding:14px;font-size:18px;width:100%;margin-bottom:12px}
+.btn{background:var(--az);color:#fff;border:0;border-radius:8px;padding:14px;font-weight:700;font-size:16px;width:100%;cursor:pointer}
+.btn.vd{background:var(--vd)}.btn.vm{background:var(--vm)}.btn.cz{background:var(--bg3)}.btn.am{background:var(--am);color:#111}
+.card{background:var(--bg2);border:1px solid #222a3a;border-radius:12px;padding:14px;margin-bottom:12px;border-left:6px solid var(--am)}
+.card.em_rota{border-left-color:var(--az)}.card.entregue{border-left-color:var(--vd);opacity:.6}.card.nao_entregue{border-left-color:#a855f7;opacity:.7}
+.card h3{margin:0 0 4px;font-size:18px}.card .end{font-size:15px;margin:4px 0}.card .mut{color:var(--mut);font-size:13px}
+.acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.acoes a,.acoes button{text-align:center;text-decoration:none;padding:12px;font-size:14px}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg3);margin-right:4px}
+.aviso{background:#7f1d1d;color:#fecaca;padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:99}
+h2{font-size:15px;color:var(--mut);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+.valor{font-weight:700;color:var(--ouro)}
+</style>
+</head>
+<body>
+<div class="top"><div class="logo">DE <span>PRATAS</span></div><span id="nome" style="font-size:14px;color:var(--mut)"></span><span class="gps" id="gps">GPS —</span></div>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const R$=v=>'R$ '+(Number(v)||0).toFixed(2).replace('.',',');
+let token=localStorage.getItem('entToken')||'',nome=localStorage.getItem('entNome')||'',rota=null,fila=JSON.parse(localStorage.getItem('filaPos')||'[]'),ultimaPos=null,bateria=null,timerRota;
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2500)}
+async function api(u,body){const r=await fetch(u,{method:body?'POST':'GET',headers:{'content-type':'application/json','x-token':token},body:body?JSON.stringify(body):undefined});if(r.status===401){sair();throw new Error('login')}const j=await r.json();if(!r.ok){toast(j.erro||'erro');throw new Error(j.erro)}return j}
+
+function telaLogin(){$('nome').textContent='';$('app').innerHTML=`<div style="margin-top:30px"><h1 style="margin:0 0 4px">Entregas</h1><p style="color:var(--mut);margin:0 0 18px">Entre com seu telefone e o PIN de 4 números que a loja te passou.</p>
+  <input id="tel" type="tel" placeholder="Telefone com DDD" inputmode="numeric"><input id="pin" type="password" placeholder="PIN" inputmode="numeric" maxlength="4">
+  <button class="btn" onclick="entrar()">Entrar</button><p id="erro" style="color:#fca5a5"></p></div>`}
+async function entrar(){try{const r=await fetch('/api/entregador/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({telefone:$('tel').value,pin:$('pin').value})});const j=await r.json();if(!j.token){$('erro').textContent=j.erro||'erro';return}
+  token=j.token;nome=j.nome;localStorage.setItem('entToken',token);localStorage.setItem('entNome',nome);iniciar()}catch(e){$('erro').textContent='Sem conexão'}}
+async function sair(){try{await api('/api/entregador/sair',{})}catch(e){}token='';localStorage.removeItem('entToken');clearInterval(timerRota);pararGps();telaLogin()}
+
+async function iniciar(){$('nome').textContent=nome;await carregarRota();clearInterval(timerRota);timerRota=setInterval(carregarRota,20000);iniciarGps();manterTela();
+  if(navigator.getBattery)navigator.getBattery().then(b=>{bateria=Math.round(b.level*100);b.addEventListener('levelchange',()=>bateria=Math.round(b.level*100))})}
+async function carregarRota(){try{rota=await api('/api/entregador/rota');render()}catch(e){if(!rota)$('app').innerHTML='<div class="aviso">Sem conexão. Tentando de novo...</div>'}}
+function render(){const pend=rota.entregas.filter(x=>!['entregue','nao_entregue'].includes(x.status)),feitas=rota.entregas.filter(x=>['entregue','nao_entregue'].includes(x.status));
+  const card=x=>`<div class="card ${x.status}"><div style="display:flex;justify-content:space-between"><h3>#${x.numero||x.id} ${x.cliente||''}</h3><span class="valor">${R$(x.valor)}</span></div>
+    <div class="end">📍 ${x.endereco}</div>${x.referencia?`<div class="mut">Ref: ${x.referencia}</div>`:''}<div class="mut">${x.pagamento||''}${x.obs?' · '+x.obs:''}</div>
+    <div style="margin-top:6px"><span class="pill">${x.status==='em_rota'?'🔵 Em rota':x.status==='entregue'?'✅ Entregue '+(x.entregue_em||'').slice(11,16):x.status==='nao_entregue'?'⛔ Não entregue':'🟠 Com você'}</span>${x.telefone_cliente?`<a class="pill" href="tel:${x.telefone_cliente}" style="color:#fff;text-decoration:none">📞 Ligar</a> <a class="pill" href="https://wa.me/55${x.telefone_cliente}" style="color:#fff;text-decoration:none">WhatsApp</a>`:''}</div>
+    ${['entregue','nao_entregue'].includes(x.status)?'':`<div class="acoes">
+      <a class="btn cz" href="${x.lat?`https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}&travelmode=driving`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.endereco)}`}" target="_blank">🗺️ Google Maps</a>
+      <a class="btn cz" href="${x.lat?`https://waze.com/ul?ll=${x.lat},${x.lng}&navigate=yes`:`https://waze.com/ul?q=${encodeURIComponent(x.endereco)}&navigate=yes`}" target="_blank">🚗 Waze</a>
+      ${x.status==='em_rota'?'':`<button class="btn am" onclick="marcar(${x.id},'em_rota')">▶ Saí para entregar</button>`}
+      <button class="btn vd" ${x.status==='em_rota'?'style="grid-column:span 2"':''} onclick="marcar(${x.id},'entregue')">✅ Entregue</button>
+      <button class="btn vm" style="grid-column:span 2;padding:8px;font-size:13px" onclick="naoEntregue(${x.id})">Não consegui entregar</button></div>`}</div>`;
+  $('app').innerHTML=`${!ultimaPos?'<div class="aviso">⚠️ GPS ainda não ativou. Permita a localização "o tempo todo" para a loja acompanhar sua rota.</div>':''}
+    <h2>Suas entregas (${pend.length})</h2>${pend.map(card).join('')||'<p class="mut" style="color:var(--mut)">Nenhuma entrega no momento. Aguarde a loja despachar.</p>'}
+    ${feitas.length?`<h2>Concluídas (${feitas.length})</h2>${feitas.map(card).join('')}`:''}
+    <button class="btn cz" style="margin-top:20px;font-size:13px;padding:10px" onclick="sair()">Sair da conta</button>`}
+async function marcar(id,status,motivo){await api('/api/entregador/entrega/'+id,{status,motivo,...(ultimaPos||{})});toast(status==='entregue'?'Entrega confirmada ✅':'Boa rota!');carregarRota()}
+function naoEntregue(id){const m=prompt('Motivo (ex.: cliente ausente, endereço errado):');if(m!==null)marcar(id,'nao_entregue',m||'sem motivo')}
+
+// ---------- GPS ----------
+let watchId=null,ultimoEnvio=0;
+function setGps(cls,txt){const g=$('gps');g.className='gps '+cls;g.textContent=txt}
+function novaPosicao(p){ // p: {lat,lng,precisao,velocidade,em}
+  const antes=ultimaPos;ultimaPos={lat:p.lat,lng:p.lng,precisao:p.precisao,velocidade:p.velocidade,em:p.em,bateria};
+  setGps('ok','GPS ✔ ±'+Math.round(p.precisao||0)+'m');
+  const moveu=!antes||dist(antes,p)>12;const tempo=Date.now()-ultimoEnvio;
+  if((moveu&&tempo>8000)||tempo>45000){fila.push(ultimaPos);ultimoEnvio=Date.now();localStorage.setItem('filaPos',JSON.stringify(fila.slice(-500)));enviarFila()}
+  if(antes===null&&rota)render();
+}
+function dist(a,b){const R=6371e3,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dn=r(b.lng-a.lng);const s=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(s))}
+async function enviarFila(){if(!fila.length||!token)return;const lote=fila.splice(0,100);try{await api('/api/entregador/posicao',{posicoes:lote})}catch(e){fila.unshift(...lote)}localStorage.setItem('filaPos',JSON.stringify(fila.slice(-500)))}
+setInterval(enviarFila,15000);
+async function iniciarGps(){
+  const BG=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.BackgroundGeolocation;
+  if(BG){ // app Android: rastreio em segundo plano
+    try{watchId=await BG.addWatcher({backgroundMessage:'Rota ativa — a loja está acompanhando sua entrega.',backgroundTitle:'De Pratas Entregador',requestPermissions:true,stale:false,distanceFilter:10},
+      (loc,err)=>{if(err){setGps('err','GPS: '+(err.code==='NOT_AUTHORIZED'?'sem permissão':'erro'));if(err.code==='NOT_AUTHORIZED'&&confirm('Permita a localização "o tempo todo" nas configurações do app.'))BG.openSettings();return}
+        if(loc)novaPosicao({lat:loc.latitude,lng:loc.longitude,precisao:loc.accuracy,velocidade:loc.speed,em:new Date(loc.time||Date.now()).toISOString()})});return}catch(e){}
+  }
+  if(!navigator.geolocation)return setGps('err','Sem GPS neste aparelho');
+  watchId=navigator.geolocation.watchPosition(p=>novaPosicao({lat:p.coords.latitude,lng:p.coords.longitude,precisao:p.coords.accuracy,velocidade:p.coords.speed,em:new Date(p.timestamp).toISOString()}),
+    e=>setGps('err','GPS: '+(e.code===1?'permissão negada':'sem sinal')),{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+async function pararGps(){const BG=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.BackgroundGeolocation;if(BG&&watchId){try{await BG.removeWatcher({id:watchId})}catch(e){}}else if(watchId!=null)navigator.geolocation.clearWatch(watchId);watchId=null;ultimaPos=null}
+let wl=null;async function manterTela(){try{if('wakeLock' in navigator){wl=await navigator.wakeLock.request('screen');document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&token){try{wl=await navigator.wakeLock.request('screen')}catch(e){}carregarRota()}})}}catch(e){}}
+if('serviceWorker' in navigator&&!window.Capacitor)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+token?iniciar():telaLogin();
+</script>
+</body>
+</html>
