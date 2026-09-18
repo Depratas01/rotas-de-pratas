@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: rotas-de-pratas
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ADMIN_SENHA
+        sync: false
+      - key: LOJA_NOME
+        value: De Pratas
+      - key: LOJA_LAT
+        value: "-20.4697"
+      - key: LOJA_LNG
+        value: "-54.6201"
+      - key: LOJA_CIDADE
+        value: Campo Grande, MS

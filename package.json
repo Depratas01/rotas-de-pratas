@@ -1,0 +1,14 @@
+{
+  "name": "rotas-de-pratas",
+  "version": "1.0.0",
+  "description": "Painel de entregas + app do entregador com rastreio GPS em tempo real",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "express": "^4.21.2"
+  }
+}
