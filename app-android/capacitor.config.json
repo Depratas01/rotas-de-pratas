@@ -1,0 +1,13 @@
+{
+  "appId": "br.com.depratas.entregador",
+  "appName": "De Pratas Entregador",
+  "webDir": "www",
+  "server": {
+    "url": "https://rotas-de-pratas.onrender.com/entregador.html",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0f1420"
+  }
+}

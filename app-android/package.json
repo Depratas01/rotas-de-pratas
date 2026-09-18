@@ -1,0 +1,20 @@
+{
+  "name": "de-pratas-entregador",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App Android do entregador (Capacitor) — carrega o site do servidor e envia GPS em segundo plano",
+  "scripts": {
+    "setup": "npm install && npx cap add android && npx cap sync android",
+    "sync": "npx cap sync android",
+    "open": "npx cap open android",
+    "apk": "cd android && ./gradlew assembleDebug && echo APK em android/app/build/outputs/apk/debug/app-debug.apk"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor-community/background-geolocation": "^1.2.19"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0"
+  }
+}
