@@ -11,8 +11,8 @@ services:
       - key: LOJA_NOME
         value: De Pratas
       - key: LOJA_LAT
-        value: "-20.4697"
+        value: "-20.4532419"
       - key: LOJA_LNG
-        value: "-54.6201"
+        value: "-54.591818"
       - key: LOJA_CIDADE
         value: Campo Grande, MS
