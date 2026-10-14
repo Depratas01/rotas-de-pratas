@@ -16,3 +16,9 @@ services:
         value: "-54.591818"
       - key: LOJA_CIDADE
         value: Campo Grande, MS
+      - key: SHOPIFY_LOJA
+        value: jvgbjv-ti
+      - key: SHOPIFY_CLIENT_ID
+        sync: false
+      - key: SHOPIFY_CLIENT_SECRET
+        sync: false

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cupom do Site - De Pratas</title>
+<style>
+:root{--bg:#0f1420;--bg2:#171d2b;--bg3:#202838;--tx:#e8ecf3;--mut:#8b94a7;--az:#2f7bff;--vd:#22c55e;--am:#f59e0b;--vm:#ef4444;--ouro:#c9a227}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+header{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #222a3a;flex-wrap:wrap}
+.logo{font-weight:800;font-size:20px;letter-spacing:1px;color:var(--ouro)}.logo span{color:#fff;font-weight:300}
+.estado{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.luz{width:12px;height:12px;border-radius:50%;background:var(--mut);display:inline-block}
+.luz.on{background:var(--vd);box-shadow:0 0 0 0 #22c55e88;animation:p 1.8s infinite}.luz.erro{background:var(--vm)}
+@keyframes p{0%{box-shadow:0 0 0 0 #22c55e88}100%{box-shadow:0 0 0 12px #22c55e00}}
+.btn{background:var(--az);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer;font-size:14px;white-space:nowrap}
+.btn.cz{background:var(--bg3);color:var(--tx)}.btn.vd{background:var(--vd)}.btn.vm{background:var(--vm)}.btn.sm{padding:5px 10px;font-size:12px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.aviso{background:#2a2110;border:1px solid #5c4515;color:#f3d48a;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:14px;display:none}
+.aviso.on{display:block}.aviso .btn{margin:8px 8px 0 0}
+.grande{background:var(--bg2);border:1px solid #222a3a;border-radius:12px;padding:18px;margin-bottom:16px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.grande .t{font-size:22px;font-weight:700}.grande .s{color:var(--mut);font-size:14px;margin-top:4px}
+h2{font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin:20px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:14px;background:var(--bg2);border-radius:10px;overflow:hidden}
+th,td{padding:9px 10px;border-bottom:1px solid #222a3a;text-align:left;vertical-align:middle}th{color:var(--mut);font-size:12px;text-transform:uppercase;font-weight:600}
+.tag{font-size:11px;padding:2px 8px;border-radius:10px;color:#fff;display:inline-block;white-space:nowrap}
+.r{text-align:right}.mut{color:var(--mut);font-size:12px}
+.login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10}
+.box{background:var(--bg2);border-radius:12px;padding:20px;width:340px;border:1px solid #2b3447}
+input{background:var(--bg3);color:var(--tx);border:1px solid #2b3447;border-radius:6px;padding:9px;font-size:14px;width:100%;margin:6px 0 12px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:8px;z-index:20;display:none;box-shadow:0 4px 20px #000}
+#impressora{position:absolute;width:0;height:0;border:0;left:-9999px}
+</style>
+</head>
+<body>
+<div class="login" id="login"><div class="box"><div class="logo" style="margin-bottom:10px">DE <span>PRATAS</span></div><div class="mut">Cupom automático do site</div><label class="mut" style="display:block;margin-top:14px">Senha do painel</label><input type="password" id="senha" onkeydown="if(event.key==='Enter')entrar()"><button class="btn" style="width:100%" onclick="entrar()">Entrar</button><p id="loginErro" style="color:var(--vm);font-size:13px"></p></div></div>
+
+<header>
+  <div class="logo">DE <span>PRATAS</span></div><div class="mut">Cupom automático do site</div>
+  <div class="estado"><span class="luz" id="luz"></span><span id="estadoTxt" class="mut">parado</span>
+    <button class="btn" id="btnLiga" onclick="alternar()">▶ Ligar impressão automática</button>
+    <button class="btn cz" onclick="testar()">Cupom de teste</button>
+  </div>
+</header>
+
+<main>
+  <div class="aviso" id="avisoAntigos"></div>
+  <div class="grande">
+    <div style="font-size:42px">🧾</div>
+    <div style="flex:1"><div class="t" id="grandeT">Impressão automática desligada</div><div class="s" id="grandeS">Clique em “Ligar impressão automática” e deixe esta aba aberta.</div></div>
+  </div>
+
+  <h2>Pedidos do site (últimos 3 dias)</h2>
+  <table><thead><tr><th>Pedido</th><th>Hora</th><th>Cliente</th><th>Tipo</th><th class="r">Total</th><th>Situação</th><th></th></tr></thead><tbody id="lista"><tr><td colspan="7" class="mut">carregando…</td></tr></tbody></table>
+  <p class="mut" style="margin-top:14px">Só saem automaticamente os pedidos <b>pagos</b>. Pedido com pagamento pendente (cartão em análise, PIX não pago) espera e imprime sozinho quando o pagamento for confirmado. Pedidos cancelados não imprimem.</p>
+</main>
+<iframe id="impressora"></iframe>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let token = localStorage.getItem('adminToken') || '';
+let ligado = false, timer = null, fila = [], imprimindo = false, pedidos = [], ultimaOk = null;
+const INTERVALO = 15000;
+const emAndamento = new Set();         // ids na fila/impressão (evita duplicar)
+const jaFeito = new Set();             // impressos nesta sessão (antes da tag chegar na Shopify)
+
+function ler(k, d) { try { return localStorage.getItem(k) ?? d } catch (e) { return d } }
+function gravar(k, v) { try { localStorage.setItem(k, v) } catch (e) {} }
+function toast(m) { const t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', 3500) }
+const R$ = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const hora = (iso) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+async function api(u, opt = {}) {
+  const r = await fetch(u, { ...opt, headers: { 'content-type': 'application/json', 'x-admin-token': token }, body: opt.body ? JSON.stringify(opt.body) : undefined });
+  if (r.status === 401) { localStorage.removeItem('adminToken'); $('login').style.display = 'flex'; throw new Error('login') }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.erro || ('erro ' + r.status));
+  return j;
+}
+async function entrar() {
+  try {
+    const j = await fetch('/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ senha: $('senha').value }) }).then(r => r.json());
+    if (!j.token) { $('loginErro').textContent = j.erro || 'erro'; return }
+    token = j.token; gravar('adminToken', token); $('login').style.display = 'none'; iniciar();
+  } catch (e) { $('loginErro').textContent = 'erro de conexão' }
+}
+
+// ---------- cupom 80 mm ----------
+function htmlCupom(p, teste) {
+  const data = new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Campo_Grande' });
+  const itens = p.itens.map(i => `<tr><td colspan="2" class="b">${esc(i.nome)}</td></tr><tr class="sm"><td>${i.qtd} x ${R$(i.unit)}</td><td class="r">${R$(i.total)}</td></tr>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  @page{size:80mm auto;margin:0}*{color:#000}
+  body{width:72mm;margin:0 auto;padding:3mm 0 6mm;font:12px/1.35 "Courier New",monospace;background:#fff}
+  h1{font-size:18px;text-align:center;margin:0;letter-spacing:2px}.c{text-align:center}.r{text-align:right}.b{font-weight:700}
+  .l{border-top:1px dashed #000;margin:6px 0}table{width:100%;border-collapse:collapse}td{padding:1px 0;vertical-align:top}
+  .sm td{font-size:11px}.tot td{font-size:15px;font-weight:700;padding-top:3px}
+  .tag{display:inline-block;border:2px solid #000;padding:2px 8px;font-weight:700;font-size:14px;margin:4px 0}
+  .tipo{font-size:15px;font-weight:700;text-align:center;border:2px solid #000;padding:3px;margin:4px 0}
+  </style></head><body>
+  <h1>DE PRATAS</h1>
+  <div class="c">${teste ? 'CUPOM DE TESTE' : 'Pedido do site'}</div>
+  <div class="c"><span class="tag">PEDIDO ${esc(p.numero)}</span></div>
+  <div class="c">${data}</div>
+  <div class="l"></div>
+  <div><b>Cliente:</b> ${esc(p.cliente)}</div>
+  ${p.telefone ? `<div><b>Fone:</b> ${esc(p.telefone)}</div>` : ''}
+  <div class="tipo">${p.retirada ? 'RETIRADA NA LOJA' : 'ENTREGA'}</div>
+  ${!p.retirada ? `<div>${esc(p.endereco)}</div>${p.frete_nome ? `<div class="sm" style="font-size:11px">Frete: ${esc(p.frete_nome)}</div>` : ''}` : ''}
+  <div class="l"></div>
+  <table>${itens}</table>
+  <div class="l"></div>
+  <table>
+    <tr><td>Subtotal</td><td class="r">${R$(p.subtotal)}</td></tr>
+    ${p.desconto > 0 ? `<tr><td>Desconto</td><td class="r">-${R$(p.desconto)}</td></tr>` : ''}
+    ${p.frete > 0 ? `<tr><td>Frete</td><td class="r">${R$(p.frete)}</td></tr>` : ''}
+    <tr class="tot"><td>TOTAL</td><td class="r">${R$(p.total)}</td></tr>
+  </table>
+  <div class="l"></div>
+  <div><b>Pagamento:</b> ${esc(p.pagamento || '—')}</div>
+  <div><b>Situação:</b> ${p.pago ? 'PAGO' : esc(p.status_pagamento)}</div>
+  ${p.obs ? `<div class="l"></div><div><b>Obs.:</b> ${esc(p.obs)}</div>` : ''}
+  <div class="l"></div>
+  <div class="c b">Obrigada pela preferência!</div>
+  <div class="c" style="font-size:10px;margin-top:4px">Documento sem valor fiscal</div>
+  </body></html>`;
+}
+
+function imprimirHTML(html) {
+  return new Promise((ok) => {
+    const f = $('impressora');
+    f.onload = () => {
+      const w = f.contentWindow; let feito = false;
+      const fim = () => { if (feito) return; feito = true; setTimeout(ok, 1500) };
+      w.addEventListener('afterprint', fim);
+      setTimeout(() => { w.focus(); w.print(); setTimeout(fim, 8000) }, 300);
+    };
+    f.srcdoc = html;
+  });
+}
+
+async function processarFila() {
+  if (imprimindo) return;
+  imprimindo = true;
+  while (fila.length) {
+    const p = fila.shift();
+    try {
+      await imprimirHTML(htmlCupom(p));
+      jaFeito.add(p.id);
+      try { await api('/api/cupom/impresso', { method: 'POST', body: { id: p.id } }) }
+      catch (e) { if (e.message !== 'login') toast('Imprimiu, mas não marcou na Shopify: ' + e.message) }
+      $('grandeT').textContent = `✅ Imprimiu o pedido ${p.numero}`;
+      $('grandeS').textContent = `${p.cliente} · ${R$(p.total)} · ${new Date().toLocaleTimeString('pt-BR')}`;
+    } finally { emAndamento.delete(p.id) }
+  }
+  imprimindo = false;
+  desenhar();
+}
+
+// ---------- busca periódica ----------
+async function buscar() {
+  try {
+    const j = await api('/api/cupom/pedidos?horas=72');
+    pedidos = j.pedidos; ultimaOk = new Date();
+    estado(ligado ? 'on' : '', ligado ? `ligado · conferido às ${ultimaOk.toLocaleTimeString('pt-BR')}` : 'parado');
+    if (ligado) {
+      const desde = Number(ler('cupom_desde', 0));
+      const novos = pedidos.filter(p => p.pago && !p.cancelado && !p.impresso && !jaFeito.has(p.id) && !emAndamento.has(p.id) && new Date(p.criado_em).getTime() >= desde);
+      if (novos.length) { bip(); novos.forEach(p => { emAndamento.add(p.id); fila.push(p) }); processarFila() }
+    }
+    desenhar();
+  } catch (e) {
+    if (e.message === 'login') return;
+    estado('erro', 'sem conexão com a loja — tentando de novo… (' + e.message + ')');
+  }
+}
+
+function desenhar() {
+  const desde = Number(ler('cupom_desde', 0));
+  const antigos = pedidos.filter(p => p.pago && !p.cancelado && !p.impresso && !jaFeito.has(p.id) && desde && new Date(p.criado_em).getTime() < desde);
+  const av = $('avisoAntigos');
+  if (antigos.length && ligado) {
+    av.className = 'aviso on';
+    av.innerHTML = `Há <b>${antigos.length}</b> pedido(s) pago(s) de antes de ligar o sistema que ainda não têm cupom (${antigos.map(p => esc(p.numero)).join(', ')}).<br>
+      <button class="btn sm" onclick="imprimirAntigos()">Imprimir todos</button><button class="btn cz sm" onclick="marcarAntigos()">Já cuidei deles — não imprimir</button>`;
+  } else av.className = 'aviso';
+
+  const linhas = [...pedidos].reverse().map(p => {
+    let sit;
+    if (p.cancelado) sit = '<span class="tag" style="background:#64748b">cancelado</span>';
+    else if (p.impresso || jaFeito.has(p.id)) sit = '<span class="tag" style="background:var(--vd)">impresso</span>';
+    else if (emAndamento.has(p.id)) sit = '<span class="tag" style="background:var(--az)">imprimindo…</span>';
+    else if (!p.pago) sit = '<span class="tag" style="background:var(--am)">aguardando pagamento</span>';
+    else sit = '<span class="tag" style="background:var(--vm)">não impresso</span>';
+    return `<tr><td><b>${esc(p.numero)}</b></td><td class="mut">${hora(p.criado_em)}</td><td>${esc(p.cliente)}</td><td>${p.retirada ? 'Retirada' : 'Entrega'}</td><td class="r">${R$(p.total)}</td><td>${sit}</td>
+      <td class="r"><button class="btn cz sm" onclick="manual('${p.id}')">${p.impresso || jaFeito.has(p.id) ? 'Imprimir de novo' : 'Imprimir'}</button></td></tr>`;
+  }).join('');
+  $('lista').innerHTML = linhas || '<tr><td colspan="7" class="mut">Nenhum pedido nos últimos 3 dias.</td></tr>';
+}
+
+function manual(id) {
+  const p = pedidos.find(x => x.id === id); if (!p || emAndamento.has(id)) return;
+  emAndamento.add(id); fila.push(p); processarFila(); desenhar();
+}
+function imprimirAntigos() {
+  const desde = Number(ler('cupom_desde', 0));
+  pedidos.filter(p => p.pago && !p.cancelado && !p.impresso && !jaFeito.has(p.id) && !emAndamento.has(p.id) && new Date(p.criado_em).getTime() < desde)
+    .forEach(p => { emAndamento.add(p.id); fila.push(p) });
+  processarFila(); desenhar();
+}
+async function marcarAntigos() {
+  const desde = Number(ler('cupom_desde', 0));
+  const lista = pedidos.filter(p => p.pago && !p.cancelado && !p.impresso && !jaFeito.has(p.id) && new Date(p.criado_em).getTime() < desde);
+  for (const p of lista) { try { await api('/api/cupom/impresso', { method: 'POST', body: { id: p.id } }); jaFeito.add(p.id) } catch (e) {} }
+  desenhar(); toast('Marcados como resolvidos');
+}
+
+function estado(cls, txt) { $('luz').className = 'luz ' + cls; $('estadoTxt').textContent = txt }
+
+function alternar() {
+  ligado = !ligado;
+  gravar('cupom_ligado', ligado ? '1' : '0');
+  if (ligado && !ler('cupom_desde', '')) gravar('cupom_desde', String(Date.now()));
+  aplicarLigado();
+  if (ligado) { bip(true); buscar() }
+}
+function aplicarLigado() {
+  $('btnLiga').textContent = ligado ? '⏸ Desligar' : '▶ Ligar impressão automática';
+  $('btnLiga').className = 'btn ' + (ligado ? 'vm' : '');
+  if (ligado) {
+    $('grandeT').textContent = 'Impressão automática LIGADA';
+    $('grandeS').textContent = 'Deixe esta aba aberta. Cada pedido pago do site sai na impressora em até 15 segundos.';
+  } else {
+    $('grandeT').textContent = 'Impressão automática desligada';
+    $('grandeS').textContent = 'Clique em “Ligar impressão automática” e deixe esta aba aberta.';
+  }
+  estado(ligado ? 'on' : '', ligado ? 'ligado' : 'parado');
+}
+
+function testar() {
+  imprimirHTML(htmlCupom({
+    numero: '#TESTE', criado_em: new Date().toISOString(), cliente: 'Cliente Teste', telefone: '(67) 99999-0000', retirada: false,
+    endereco: 'Rua Exemplo, 123 · Centro · Campo Grande/MS · CEP 79000-000', frete_nome: 'Frete fixo Campo Grande',
+    itens: [{ nome: 'Colar Ponto de Luz Prata 925', qtd: 1, unit: 89.9, total: 89.9 }, { nome: 'Embalagem de presente', qtd: 1, unit: 7, total: 7 }],
+    subtotal: 96.9, desconto: 4.85, frete: 5, total: 97.05, pagamento: 'PIX', pago: true, obs: ''
+  }, true));
+}
+
+// aviso sonoro (o navegador só libera som depois de um clique na página)
+let audio;
+function bip(silencioso) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (silencioso) return;
+    [0, .18].forEach(t => { const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; o.connect(g); g.connect(audio.destination); g.gain.setValueAtTime(.25, audio.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + t + .15); o.start(audio.currentTime + t); o.stop(audio.currentTime + t + .16) });
+  } catch (e) {}
+}
+
+async function iniciar() {
+  try { const s = await api('/api/cupom/status'); if (!s.configurado) { estado('erro', 'Shopify ainda não configurada no servidor'); $('grandeT').textContent = 'Falta ligar a Shopify no servidor'; $('grandeS').textContent = 'Cadastre SHOPIFY_CLIENT_ID e SHOPIFY_CLIENT_SECRET no Render (veja o passo a passo).'; return } }
+  catch (e) { if (e.message === 'login') return }
+  ligado = ler('cupom_ligado', '0') === '1';
+  aplicarLigado();
+  buscar();
+  clearInterval(timer); timer = setInterval(buscar, INTERVALO);
+}
+
+if (token) { $('login').style.display = 'none'; iniciar() }
+</script>
+</body>
+</html>

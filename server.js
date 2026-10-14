@@ -249,6 +249,9 @@ app.post('/api/admin/entregas/reordenar', admin, (req, res) => {
 });
 app.get('/api/admin/geocode', admin, async (req, res) => res.json(await geocodificar(req.query.q) || { erro: 'não encontrado' }));
 
+// --- cupom automático dos pedidos do site (Shopify) ---
+require('./cupom-shopify').registrar(app, admin);
+
 // --- API do entregador (app do celular) ---
 app.post('/api/entregador/login', (req, res) => {
   const tel = soDigitos(req.body.telefone), pin = String(req.body.pin || '');

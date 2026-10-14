@@ -42,3 +42,14 @@ Ajuste `LOJA_LAT`/`LOJA_LNG` para o endereço real da loja (no Google Maps: bot�
 - `POST /api/admin/entregas {numero, cliente, telefone_cliente, endereco, referencia, valor, pagamento, obs}`
 - `GET /api/admin/entregas?data=AAAA-MM-DD`, `GET /api/admin/entregadores/posicoes`, `GET /api/admin/entregadores/:id/trajeto?data=`
 - `POST /api/admin/entregas/despachar {ids:[...], entregador_id}`
+
+## Cupom automático dos pedidos do site (Shopify)
+Tela **`/cupom.html`**: fica aberta no computador da loja e imprime sozinha, na térmica 80 mm, cada pedido **pago** do depratas.com.br (confere a cada 15 s). Depois de imprimir, o pedido ganha a etiqueta `cupom-impresso` na Shopify — não repete cupom e nada se perde se o servidor reiniciar. Pedido pendente imprime quando o pagamento for confirmado; cancelado não imprime.
+
+**1. App na Shopify (uma vez):** dev.shopify.com → *Apps* → *Criar app* → nome "Cupom De Pratas" → na versão do app, escopos `read_orders` e `write_orders` → *Lançar* → *Instalar* na loja. Em *Configurações* copie **Client ID** e **Client secret**.
+
+**2. Render:** no serviço do Rotas ▸ *Environment*, adicione `SHOPIFY_CLIENT_ID` e `SHOPIFY_CLIENT_SECRET` (e `SHOPIFY_LOJA=jvgbjv-ti`). Salve (o Render reinicia sozinho).
+
+**3. Computador da loja (Windows):** deixe a térmica como *impressora padrão* (papel 80 mm). Crie um atalho do Chrome com destino:
+`"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing https://de-pratas.onrender.com/cupom.html`
+Feche todo Chrome aberto, abra pelo atalho, entre com a senha do painel e clique **Ligar impressão automática**. Use **Cupom de teste** para conferir. Para abrir junto com o Windows, coloque o atalho em `shell:startup`.
